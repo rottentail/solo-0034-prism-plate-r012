@@ -98,3 +98,37 @@ func (path Path) Contains(p Point, rule string) bool {
 	}
 	return winding != 0
 }
+
+// Winding returns the signed winding number of the whole path at p, summing the
+// contribution of every ring so opposite-winding holes subtract correctly.
+func (path Path) Winding(p Point) int {
+	winding := 0
+	for _, ring := range path {
+		for i, a := range ring {
+			b := ring[(i+1)%len(ring)]
+			if a.Y <= p.Y && b.Y > p.Y {
+				x := a.X + (p.Y-a.Y)*(b.X-a.X)/(b.Y-a.Y)
+				if x > p.X {
+					winding++
+				}
+			} else if b.Y <= p.Y && a.Y > p.Y {
+				x := a.X + (p.Y-a.Y)*(b.X-a.X)/(b.Y-a.Y)
+				if x > p.X {
+					winding--
+				}
+			}
+		}
+	}
+	return winding
+}
+
+// InsideWith applies the named fill rule to a precomputed winding number.
+func InsideWith(winding int, rule string) bool {
+	if rule == "evenodd" {
+		if winding < 0 {
+			winding = -winding
+		}
+		return winding%2 == 1
+	}
+	return winding != 0
+}

@@ -128,6 +128,19 @@ func (a API) Handler() http.Handler {
 		}
 		jsonOut(w, 200, map[string]string{"state": "archived"})
 	})
+	mux.HandleFunc("POST /v1/plates/{id}/boolean", func(w http.ResponseWriter, r *http.Request) {
+		var q service.BooleanRequest
+		if e := decode(w, r, &q); e != nil {
+			failure(w, e)
+			return
+		}
+		p, e := a.Service.Boolean(r.PathValue("id"), q)
+		if e != nil {
+			failure(w, e)
+			return
+		}
+		jsonOut(w, 201, p)
+	})
 	mux.HandleFunc("POST /v1/plates/{id}/render", func(w http.ResponseWriter, r *http.Request) {
 		n, e := revision(r)
 		if e != nil {

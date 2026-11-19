@@ -18,6 +18,10 @@ curl -X POST 'http://127.0.0.1:7846/v1/plates/amber-plate/render?revision=1&form
 
 第二个响应返回成品 id；以 GET /v1/artifacts/{id} 获取图片。服务不依赖浏览器、GPU、字体或外部图片。默认只监听回环地址，无身份认证；运行边界和容器挂载见 docs/operations.md。
 
+## 轮廓布尔运算
+
+`POST /v1/plates/{id}/boolean` 对指定稿本中的闭合轮廓做并集、相交或差集，把结果作为新的不可变稿本追加。结果是单位变换、evenodd 填充的闭合形状，放在新增图层中，可继续变换或再次运算。它以精确拓扑的平面细分处理相反绕向、镂空、镜像/仿射变换和共边：重合边焊接为单条图边而不产生碎片，真正的窄通道是否保留由调用方给定的 `tolerance` 决定。参与形状笔刷不同，结果外观由 `brush_source` 在 `first`、`last`、`explicit` 间显式选择。同一新稿本可分别渲染 PNG 与 SVG 核对。详见 docs/boolean.md 与 docs/api.md。
+
 ## 场景约定
 
 examples/amber-proof.json 提供曲线、线性渐变、仿射变换、镂空、裁域、二值蒙版和 screen 叠色。坐标原点在左上，颜色为 0..1 的 sRGB 直通色值，PNG 在内部转换为线性光预乘透明度。M/L/Q/C/Z 路径必须显式闭合，轮廓至少三条端点指令；Q/C 分别固定细分16/24段。图层可选 normal/multiply/screen，组透明度在整层合成后施加，蒙版与裁域处于版面坐标，笔刷与填充轮廓处于形状局部坐标。未提供的数值使用 JSON 的零值；形状必须明确传入可逆 transform。
@@ -39,7 +43,7 @@ python3 scripts/walkthrough.py --workflow png
 python3 scripts/walkthrough.py --workflow bundle
 ```
 
-可选workflow值：create、revise、branch、archive、png、svg、exposure、cancel、artifact、proof、bundle、restore、isolation、rejection。每个流程在临时数据根启动实际HTTP服务，完成后正常关停，不占用长期端口、不修改演示输入。
+可选workflow值：create、revise、branch、archive、boolean、png、svg、exposure、cancel、artifact、proof、bundle、restore、isolation、rejection。每个流程在临时数据根启动实际HTTP服务，完成后正常关停，不占用长期端口、不修改演示输入。
 
 ## 持久化与范围
 

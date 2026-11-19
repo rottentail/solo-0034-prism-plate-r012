@@ -1,0 +1,44 @@
+{
+  "id": "boolean-plate",
+  "title": "布尔校样",
+  "document": {
+    "width": 120,
+    "height": 120,
+    "background": {"r": 0.95, "g": 0.95, "b": 0.95, "a": 1},
+    "layers": [
+      {
+        "id": "sheet",
+        "opacity": 1,
+        "blend": "normal",
+        "shapes": [
+          {
+            "id": "left-block",
+            "fill_rule": "nonzero",
+            "path": [
+              {"kind": "M", "points": [{"x": 10, "y": 20}]},
+              {"kind": "L", "points": [{"x": 60, "y": 20}]},
+              {"kind": "L", "points": [{"x": 60, "y": 90}]},
+              {"kind": "L", "points": [{"x": 10, "y": 90}]},
+              {"kind": "Z"}
+            ],
+            "transform": [1, 0, 0, 1, 0, 0],
+            "brush": {"kind": "solid", "color": {"r": 0.8, "g": 0.2, "b": 0.2, "a": 1}}
+          },
+          {
+            "id": "right-block",
+            "fill_rule": "nonzero",
+            "path": [
+              {"kind": "M", "points": [{"x": 40, "y": 40}]},
+              {"kind": "L", "points": [{"x": 100, "y": 40}]},
+              {"kind": "L", "points": [{"x": 100, "y": 100}]},
+              {"kind": "L", "points": [{"x": 40, "y": 100}]},
+              {"kind": "Z"}
+            ],
+            "transform": [1, 0, 0, 1, 0, 0],
+            "brush": {"kind": "solid", "color": {"r": 0.2, "g": 0.4, "b": 0.9, "a": 1}}
+          }
+        ]
+      }
+    ]
+  }
+}

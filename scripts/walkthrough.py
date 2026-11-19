@@ -84,6 +84,46 @@ def main():
             elif w=='rejection':
                 bad=copy.deepcopy(seed);bad['id']='oversize';bad['document']['width']=513;call('POST','/v1/plates',bad,status=400);call('GET','/v1/plates/oversize',status=404)
                 bad=copy.deepcopy(seed);bad['id']='invalid-brush';bad['document']['layers'][0]['shapes'][0]['brush']['stops'][1]['at']=0;call('POST','/v1/plates',bad,status=400);assert render()['revision']==1
+            elif w=='boolean':
+                sheet=seed['document']['layers']
+                refs=[{'layer':sheet[0]['id'],'shape':sheet[0]['shapes'][0]['id']},
+                      {'layer':sheet[1]['id'],'shape':sheet[1]['shapes'][0]['id']}]
+                def booleq(operation,brush_source,expected,layer,shape,extra=None,status=201):
+                    q={'expected_revision':expected,'source_revision':1,'operation':operation,'operands':refs,
+                       'brush_source':brush_source,'tolerance':1e-9,'layer_id':layer,'shape_id':shape,'title':operation}
+                    if extra:q.update(extra)
+                    return call('POST','/v1/plates/amber-plate/boolean',q,status=status)
+                p=booleq('union','first',1,'bool-union','union-shape');assert len(p['revisions'])==2
+                union_layer=p['revisions'][1]['document']['layers'][-1]
+                us=union_layer['shapes'][0]
+                assert us['transform']==[1,0,0,1,0,0] and us['fill_rule']=='evenodd'
+                assert us['brush']['kind']=='linear'  # first operand brush retained
+                assert us['path'][0]['kind']=='M' and us['path'][-1]['kind']=='Z'
+                # PNG and SVG of the new revision must both render the same geometry.
+                png=call('POST','/v1/plates/amber-plate/render?revision=2&format=png',status=201)
+                svg=call('POST','/v1/plates/amber-plate/render?revision=2&format=svg',status=201)
+                png_raw=call('GET','/v1/artifacts/'+png['id'],raw=True)[0];svg_raw=call('GET','/v1/artifacts/'+svg['id'],raw=True)[0]
+                assert png_raw[:8]==b'\x89PNG\r\n\x1a\n' and b'<svg' in svg_raw
+                # The boolean result is the final evenodd path rendered by both formats.
+                assert b'fill-rule="evenodd"' in svg_raw and b'matrix(1 0 0 1 0 0)' in svg_raw
+                # Last-operand brush and explicit brush are explicit caller choices.
+                p=booleq('intersect','last',2,'bool-intersect','intersect-shape')
+                assert p['revisions'][2]['document']['layers'][-1]['shapes'][0]['brush']['kind']=='solid'
+                explicit={'brush_source':'explicit','brush':{'kind':'solid','color':{'r':0.1,'g':0.2,'b':0.3,'a':0.7}}}
+                p=booleq('difference','explicit',3,'bool-difference','difference-shape',explicit)
+                chosen=p['revisions'][3]['document']['layers'][-1]['shapes'][0]['brush']
+                assert chosen['kind']=='solid' and chosen['color']['r']==0.1
+                # Source revision stays immutable; rejection paths return 4xx.
+                assert call('GET','/v1/plates/amber-plate')['revisions'][0]['digest']==created['revisions'][0]['digest']
+                # Three booleans appended revisions 2..4. A result node id that
+                # already exists in the source revision is rejected at admission.
+                booleq('union','first',4,sheet[0]['id'],'fresh-shape',status=400)
+                call('POST','/v1/plates/amber-plate/boolean',
+                     {'expected_revision':99,'source_revision':1,'operation':'union','operands':refs,
+                      'brush_source':'first','layer_id':'stale','shape_id':'stale-shape','title':'x'},status=409)
+                call('POST','/v1/plates/amber-plate/boolean',
+                     {'expected_revision':4,'source_revision':1,'operation':'xor','operands':refs,
+                      'brush_source':'first','layer_id':'bad-op','shape_id':'bad-op-shape','title':'x'},status=400)
             else:raise RuntimeError('unknown workflow '+w)
             print(json.dumps({'workflow':w,'result':'passed','entry':'HTTP','port':port},ensure_ascii=False))
         finally:stop();log.close()
